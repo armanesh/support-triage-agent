@@ -1,0 +1,7 @@
+{
+  "ORD-1001": {"status": "delivered", "days_since_purchase": 5, "amount_eur": 89.99},
+  "ORD-1002": {"status": "in transit", "days_since_purchase": 2, "amount_eur": 145.50},
+  "ORD-1003": {"status": "delivered", "days_since_purchase": 45, "amount_eur": 39.00},
+  "ORD-1004": {"status": "delivered", "days_since_purchase": 95, "amount_eur": 210.00},
+  "ORD-1005": {"status": "delayed", "days_since_purchase": 12, "amount_eur": 59.99}
+}

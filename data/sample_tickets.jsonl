@@ -1,0 +1,10 @@
+{"ticket_id": "T-001", "customer_name": "Freek de Vries", "subject": "Refund request", "body": "Hi, I'd like a refund for order ORD-1001, it didn't fit as expected.", "order_id": "ORD-1001"}
+{"ticket_id": "T-002", "customer_name": "Lotte Bakker", "subject": "Partial refund?", "body": "Can I still get a refund on ORD-1003? It's been a little while.", "order_id": "ORD-1003"}
+{"ticket_id": "T-003", "customer_name": "Sanne Jansen", "subject": "Refund", "body": "I want a refund for ORD-1004 please.", "order_id": "ORD-1004"}
+{"ticket_id": "T-004", "customer_name": "Tom Visser", "subject": "Where is my order", "body": "Can you check the shipping status for order ORD-1002?", "order_id": "ORD-1002"}
+{"ticket_id": "T-005", "customer_name": "Emma Smit", "subject": "OVERCHARGED", "body": "I was charged twice for this order and I am furious about it, this is unacceptable!", "order_id": "ORD-1005"}
+{"ticket_id": "T-006", "customer_name": "Daan Mulder", "subject": "Locked out urgently", "body": "I am locked out of my account and need this fixed immediately, I have a client meeting in 10 minutes!!", "order_id": null}
+{"ticket_id": "T-007", "customer_name": "Nina de Boer", "subject": "question", "body": "hey so like, things are kind of weird with my stuff, can someone look into it", "order_id": null}
+{"ticket_id": "T-008", "customer_name": "Bram Dekker", "subject": "App keeps crashing", "body": "The app crashes every time I open it on my phone after the last update.", "order_id": null}
+{"ticket_id": "T-009", "customer_name": "Iris van Dijk", "subject": "How do I change my email", "body": "I want to update the email address linked to my account, how do I do that?", "order_id": null}
+{"ticket_id": "T-010", "customer_name": "Milan Peters", "subject": "Package not moving", "body": "My package tracking hasn't updated in a week for order ORD-1002.", "order_id": "ORD-1002"}
