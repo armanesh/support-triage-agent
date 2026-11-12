@@ -10,6 +10,8 @@ the cost of losing that auditability.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -53,8 +55,19 @@ class Classification:
 
 
 class Classifier(ABC):
+    """The router's interface. Subclasses implement the blocking `classify`.
+
+    `aclassify` is the async entry point the orchestrator uses. The default
+    runs `classify` in a worker thread so a blocking backend never stalls the
+    event loop; backends with a native async client (see OpenAIClassifier)
+    override it.
+    """
+
     @abstractmethod
     def classify(self, subject: str, body: str) -> Classification: ...
+
+    async def aclassify(self, subject: str, body: str) -> Classification:
+        return await asyncio.to_thread(self.classify, subject, body)
 
 
 class RuleBasedClassifier(Classifier):
@@ -89,33 +102,49 @@ class OpenAIClassifier(Classifier):
     """Optional LLM-backed classifier. Only imports the SDK if selected."""
 
     def __init__(self, model: str = "gpt-4o-mini"):
-        from openai import OpenAI
+        from openai import AsyncOpenAI, OpenAI
 
         self._client = OpenAI()
+        self._async_client = AsyncOpenAI()
         self._model = model
 
-    def classify(self, subject: str, body: str) -> Classification:
-        import json as _json
-
+    @staticmethod
+    def _build_prompt(subject: str, body: str) -> str:
         categories = list(CATEGORY_KEYWORDS) + ["general"]
-        prompt = (
+        return (
             "Classify this support ticket. Respond with strict JSON only: "
             f'{{"category": one of {categories}, "confidence": 0-1 float, '
             '"urgent": bool, "negative_sentiment": bool}}\n\n'
             f"Subject: {subject}\nBody: {body}"
         )
-        response = self._client.chat.completions.create(
-            model=self._model,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-        )
-        data = _json.loads(response.choices[0].message.content)
+
+    @staticmethod
+    def _parse(content: str | None) -> Classification:
+        if content is None:
+            raise ValueError("The model returned an empty response")
+        data = json.loads(content)
         return Classification(
             category=data["category"],
             confidence=float(data["confidence"]),
             urgent=bool(data["urgent"]),
             negative_sentiment=bool(data["negative_sentiment"]),
         )
+
+    def classify(self, subject: str, body: str) -> Classification:
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "user", "content": self._build_prompt(subject, body)}],
+            response_format={"type": "json_object"},
+        )
+        return self._parse(response.choices[0].message.content)
+
+    async def aclassify(self, subject: str, body: str) -> Classification:
+        response = await self._async_client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "user", "content": self._build_prompt(subject, body)}],
+            response_format={"type": "json_object"},
+        )
+        return self._parse(response.choices[0].message.content)
 
 
 def get_classifier(provider: str) -> Classifier:

@@ -1,4 +1,4 @@
-.PHONY: install test lint run show-queue demo
+.PHONY: install test lint typecheck run show-queue demo
 
 install:
 	pip install -e ".[dev]"
@@ -8,6 +8,9 @@ test:
 
 lint:
 	ruff check src tests
+
+typecheck:
+	mypy
 
 run:
 	triage run

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import uuid
 
 from triageagent.classify import get_classifier
@@ -12,7 +13,7 @@ from triageagent.config import (
     DEFAULT_QUEUE_PATH,
     DEFAULT_TICKETS_PATH,
 )
-from triageagent.orchestrator import TriageOrchestrator
+from triageagent.orchestrator import TriageOrchestrator, TriageResult
 from triageagent.resolver import ResolverAgent
 from triageagent.ticket import Ticket, TicketQueue, load_tickets
 from triageagent.tools import KnowledgeBaseTool, OrderStatusTool, RefundCalculatorTool
@@ -29,7 +30,7 @@ def _build_orchestrator(args: argparse.Namespace) -> TriageOrchestrator:
     return TriageOrchestrator(classifier, resolver, queue)
 
 
-def _print_result(result) -> None:
+def _print_result(result: TriageResult) -> None:
     print(f"[{result.ticket_id}] category={result.category} escalated={result.escalated}")
     for line in result.trace:
         print(f"    {line}")
@@ -39,12 +40,10 @@ def _print_result(result) -> None:
 def cmd_run(args: argparse.Namespace) -> int:
     orchestrator = _build_orchestrator(args)
     tickets = load_tickets(args.tickets)
-    escalated_count = 0
-    for ticket in tickets:
-        result = orchestrator.handle(ticket)
+    results = asyncio.run(orchestrator.handle_batch(tickets, concurrency=args.concurrency))
+    for result in results:
         _print_result(result)
-        if result.escalated:
-            escalated_count += 1
+    escalated_count = sum(1 for result in results if result.escalated)
     print(f"Processed {len(tickets)} tickets, {escalated_count} escalated to a human.")
     return 0
 
@@ -88,6 +87,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("run", parents=[common_args], help="Process a batch of tickets from a JSONL file")
     p.add_argument("--tickets", default=str(DEFAULT_TICKETS_PATH))
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=5,
+        help="Maximum number of tickets processed at the same time",
+    )
     p.set_defaults(func=cmd_run)
 
     p = sub.add_parser("handle", parents=[common_args], help="Process a single ad-hoc ticket")
@@ -108,7 +113,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    return args.func(args)
+    code: int = args.func(args)
+    return code
 
 
 if __name__ == "__main__":

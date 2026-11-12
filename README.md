@@ -62,7 +62,25 @@ triage handle "I'd like a refund for ORD-1001" --subject "refund"
 triage handle "I am FURIOUS this is a scam!!" --subject "angry"
 
 pytest
+make typecheck                 # mypy in strict mode
 ```
+
+## Async batch processing
+
+`triage run` handles the whole batch concurrently with `asyncio`. Every agent
+step has an async entry point (`aclassify`, `aresolve`, `ahandle`), and
+`TriageOrchestrator.handle_batch` runs tickets under an `asyncio.Semaphore`, so
+at most N tickets (and N LLM calls) are in flight at once. Results keep the
+input order, and the escalation queue uses a lock so parallel escalations never
+corrupt the JSONL file.
+
+```bash
+triage run --concurrency 10
+```
+
+The blocking rule-based agents run in worker threads via `asyncio.to_thread`.
+`OpenAIClassifier` uses the native `AsyncOpenAI` client. The synchronous
+`handle` method still works and shares its decision logic with the async path.
 
 ## What the sample tickets demonstrate
 

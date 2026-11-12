@@ -35,3 +35,10 @@ def test_show_queue_after_escalation(tmp_path, capsys):
     assert rc == 0
     captured = capsys.readouterr()
     assert "reason:" in captured.out
+
+
+def test_run_accepts_concurrency_flag(tmp_path, capsys):
+    queue_path = tmp_path / "escalations.jsonl"
+    rc = main(["run", "--queue", str(queue_path), "--concurrency", "2"])
+    assert rc == 0
+    assert "Processed 10 tickets" in capsys.readouterr().out

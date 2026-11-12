@@ -11,6 +11,7 @@ policy downstream reacts to.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 from triageagent.classify import Classification, extract_order_id
@@ -42,6 +43,13 @@ class ResolverAgent:
         if classification.category == "shipping":
             return self._resolve_shipping(ticket)
         return self._resolve_with_knowledge_base(ticket, classification)
+
+    async def aresolve(
+        self, ticket: Ticket, classification: Classification
+    ) -> ResolutionAttempt:
+        """Async entry point. The tools do blocking file I/O, so they run in a
+        worker thread instead of blocking the event loop."""
+        return await asyncio.to_thread(self.resolve, ticket, classification)
 
     def _resolve_billing(self, ticket: Ticket) -> ResolutionAttempt:
         order_id = ticket.order_id or extract_order_id(ticket.body)

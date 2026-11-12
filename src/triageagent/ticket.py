@@ -10,7 +10,9 @@ interface (enqueue/list) is what the rest of the code depends on.
 
 from __future__ import annotations
 
+import asyncio
 import json
+import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -35,6 +37,9 @@ class EscalationEntry:
 class TicketQueue:
     def __init__(self, path: str | Path):
         self.path = Path(path)
+        # Concurrent tickets may escalate at the same time; the lock keeps
+        # each JSONL row intact.
+        self._write_lock = threading.Lock()
 
     def enqueue(self, entry: EscalationEntry) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -44,13 +49,16 @@ class TicketQueue:
             "category": entry.category,
             "confidence": entry.confidence,
         }
-        with self.path.open("a", encoding="utf-8") as fh:
+        with self._write_lock, self.path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(row) + "\n")
+
+    async def aenqueue(self, entry: EscalationEntry) -> None:
+        await asyncio.to_thread(self.enqueue, entry)
 
     def list(self) -> list[EscalationEntry]:
         if not self.path.exists():
             return []
-        entries = []
+        entries: list[EscalationEntry] = []
         with self.path.open(encoding="utf-8") as fh:
             for line in fh:
                 line = line.strip()
@@ -73,7 +81,7 @@ class TicketQueue:
 
 
 def load_tickets(path: str | Path) -> list[Ticket]:
-    tickets = []
+    tickets: list[Ticket] = []
     with open(path, encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
